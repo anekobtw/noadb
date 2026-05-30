@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "table.h"
 #include "types.h"
 #include <assert.h>
 #include <stdio.h>
@@ -62,6 +63,13 @@ int get_table_count(Database *db) {
   return table_count;
 }
 
+void add_table(Database *db, Table *table) {
+  int tables = get_table_count(db);
+  _set_table_count(db, ++tables);
+
+  // TODO: add actual logic here
+}
+
 int main() {
   printf("Creating database..\n");
 
@@ -75,6 +83,16 @@ int main() {
     printf("Database couldn't be created :(");
     return 1;
   }
+
+  Table *users_table = create_table("users");
+  add_column(users_table, COLUMN_TYPE_UINT16, "id");
+  add_column(users_table, COLUMN_TYPE_STRING, "name");
+  add_column(users_table, COLUMN_TYPE_UINT8, "age");
+
+  printf("Adding table %s into %s\n", users_table->table_name, db->filename);
+  add_table(db, users_table);
+
+  free_table(users_table);
 
   close_db(db);
 
