@@ -67,6 +67,12 @@ Database *init_db(char *filename) {
   return db;
 }
 
+void close_db(Database *db) {
+  if (!db) return;
+  free(db->filename);
+  free(db);
+}
+
 int main() {
   printf("Creating database..\n");
 
@@ -85,6 +91,8 @@ int main() {
   _manage_table_count(db, 1);
 
   printf("%d\n", get_table_count(db));
+
+  close_db(db);
 
   return 0;
 }
