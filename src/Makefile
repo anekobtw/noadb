@@ -1,5 +1,5 @@
 CC=gcc
-SRC=main.c db.c
+SRC=test.c db.c
 OUT=app
 
 all:
