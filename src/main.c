@@ -44,7 +44,7 @@ void close_db(Database *db) {
 }
 
 int get_table_count(Database *db) {
-  FILE *file = fopen(db->filename, "r");
+  FILE *file = fopen(db->filename, "rb");
   assert(file);
 
   int table_count;
