@@ -2,6 +2,8 @@
 #define DATABASE_H
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
   char *filename;
@@ -31,7 +33,7 @@ typedef struct {
 
 typedef struct {
   char *table_name;
-  size_t n;
+  uint32_t columns_len;
   Column *columns;
 } Table;
 

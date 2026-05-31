@@ -1,12 +1,20 @@
-first number = tables count
+[ version ]
+[ uint32_t tables_count ]
 
-then for loop and for each table:
-first number = columns count
-second number = row count
+for table in tables_count:
 
-for each column:
-first number = column type (int, str, etc)
-second number = name len
-then name itself
-then reading lines one by one
+    [ uint16_t table_name_length ]
+    [ table_name ]
+ 
+    [ uint32_t column_count ]
+    [ uint32_t row_count ]
+
+    for column in columns:
+        [ uint16_t column_name_length ]
+        [ column_name ]
+        [ column_type ]
+
+    for row in rows:
+        for column in columns:
+            [ value ]
 
