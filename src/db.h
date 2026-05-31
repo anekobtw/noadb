@@ -4,12 +4,12 @@
 #include "types.h"
 
 Database *init_db(char *filename);
-void close_db(Database *db);
+int free_db(Database *db);
 
 Table *create_table(char *table_name);
-void add_column(Table *table, ColumnType column_type, char *column_name);
-void free_table(Table *table);
+int add_column(Table *table, ColumnType column_type, char *column_name);
+int free_table(Table *table);
 
-void add_table(Database *db, Table *table);
+int add_table(Database *db, Table *table);
 
 #endif

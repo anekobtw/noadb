@@ -1,65 +1,60 @@
 #include "db.h"
-#include "internal.h"
-#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 Database *init_db(char *filename) {
   // checking if it ends with .noa
-  assert(strlen(filename) > 4);
-  assert(strcmp(filename + (strlen(filename) - 4), ".noa") == 0);
+  if (strlen(filename) <= 4)
+    return NULL;
+  if (strcmp(filename + (strlen(filename) - 4), ".noa"))
+    return NULL;
 
   // create file if it doesn't exist
-  FILE *file = fopen(filename, "ab+");
-  assert(file);
+  FILE *file = fopen(filename, "r+b");
+  if (!file) {
+    file = fopen(filename, "wb");
+  }
 
-  fseek(file, 0, SEEK_END);
-  long size = ftell(file);
+  // insert header if it doesn't exist
+  struct stat file_stat;
+  if (stat(filename, &file_stat) != 0)
+    return NULL;
+
+  if (file_stat.st_size < sizeof(int)) {
+    fseek(file, 0, SEEK_SET);
+    int tables_count = 0;
+    fwrite(&tables_count, sizeof(int), 1, file);
+  }
 
   fclose(file);
 
   // return a database object
   Database *db = malloc(sizeof(Database));
-  assert(db);
+  if (!db)
+    return NULL;
 
   db->filename = strdup(filename);
-  assert(db->filename);
-
-  // insert header
-  if (size < sizeof(int)) {
-    _set_table_count(db, 0);
-  }
+  if (!db->filename)
+    return NULL;
 
   return db;
 }
 
-void close_db(Database *db) {
+int free_db(Database *db) {
   if (!db)
-    return;
+    return 1;
   free(db->filename);
   free(db);
+  return 0;
 }
 
-int get_table_count(Database *db) {
-  FILE *file = fopen(db->filename, "rb");
-  assert(file);
-
-  int table_count;
-  size_t read = fread(&table_count, sizeof(int), 1, file);
-  assert(read == 1);
-
-  fclose(file);
-
-  return table_count;
-}
-
-void add_table(Database *db, Table *table) {
+int add_table(Database *db, Table *table) {
   // increasing table count
-  int tables = get_table_count(db);
-  _set_table_count(db, ++tables);
-
   FILE *file = fopen(db->filename, "r+b");
-  assert(file);
+  if (!file)
+    return 1;
 
   fseek(file, 0, SEEK_END);
 
@@ -81,18 +76,34 @@ void add_table(Database *db, Table *table) {
     fwrite(&table->columns[i].column_type, sizeof(ColumnType), 1, file);
   }
 
+  // updating the header
+  int table_count;
+  fseek(file, 0, SEEK_SET);
+  size_t read = fread(&table_count, sizeof(int), 1, file);
+  if (!read)
+    return -1;
+
+  table_count++;
+  fseek(file, 0, SEEK_SET);
+  fwrite(&table_count, sizeof(int), 1, file);
+
   fclose(file);
+
+  return 0;
 }
 
 Table *create_table(char *table_name) {
   size_t n = strlen(table_name);
-  assert(n <= UINT16_MAX);
+  if (n > UINT16_MAX)
+    return NULL;
 
   Table *table = malloc(sizeof(Table));
-  assert(table);
+  if (!table)
+    return NULL;
 
   table->table_name = strdup(table_name);
-  assert(table->table_name);
+  if (!table->table_name)
+    return NULL;
 
   table->columns_len = 0;
   table->columns = NULL;
@@ -100,24 +111,29 @@ Table *create_table(char *table_name) {
   return table;
 }
 
-void add_column(Table *table, ColumnType column_type, char *column_name) {
+int add_column(Table *table, ColumnType column_type, char *column_name) {
   size_t n = strlen(column_name);
-  assert(n <= UINT16_MAX);
+  if (n > UINT16_MAX)
+    return 1;
 
   table->columns_len++;
 
   Column *temp = realloc(table->columns, table->columns_len * sizeof(Column));
-  assert(temp);
+  if (!temp)
+    return 1;
   table->columns = temp;
 
   table->columns[table->columns_len - 1].column_name = strdup(column_name);
-  assert(table->columns[table->columns_len - 1].column_name);
+  if (!table->columns[table->columns_len - 1].column_name)
+    return 1;
   table->columns[table->columns_len - 1].column_type = column_type;
+
+  return 0;
 }
 
-void free_table(Table *table) {
+int free_table(Table *table) {
   if (!table)
-    return;
+    return 1;
 
   for (uint32_t i = 0; i < table->columns_len; i++) {
     free(table->columns[i].column_name);
@@ -126,4 +142,6 @@ void free_table(Table *table) {
   free(table->columns);
   free(table->table_name);
   free(table);
+
+  return 0;
 }

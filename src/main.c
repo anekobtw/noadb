@@ -1,5 +1,4 @@
 #include "db.h"
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,11 +27,13 @@ const char *column_type_to_string(ColumnType type) {
 
 void print_schema(Database *db) {
   FILE *file = fopen(db->filename, "rb");
-  assert(file);
+  if (!file)
+    return;
 
   int table_count;
   size_t read = fread(&table_count, sizeof(int), 1, file);
-  assert(read == 1);
+  if (!read)
+    return;
 
   printf("Database info:\n");
   printf("Filename: %s\n", db->filename);
@@ -74,27 +75,43 @@ void print_schema(Database *db) {
 }
 
 int main() {
-  printf("DEBUG: Creating database..\n");
+  printf("DEBUG: Creating a database..\n");
 
   Database *db = init_db("test.noa");
+  if (db)
+    printf("DEBUG: Database created successfully!\n");
 
   Table *users_table = create_table("users");
-  add_column(users_table, COLUMN_TYPE_UINT16, "id");
-  add_column(users_table, COLUMN_TYPE_STRING, "name");
-  add_column(users_table, COLUMN_TYPE_UINT8, "age");
+  if (users_table) {
+    if (add_column(users_table, COLUMN_TYPE_UINT16, "user_id") != 0)
+      printf("Error adding column id to users_table\n");
+    if (add_column(users_table, COLUMN_TYPE_STRING, "name") != 0)
+      printf("Error adding column name to users_table\n");
+    if (add_column(users_table, COLUMN_TYPE_UINT8, "age") != 0)
+      printf("Error adding column age to users_table\n");
+  }
 
   Table *posts_table = create_table("posts");
-  add_column(posts_table, COLUMN_TYPE_UINT32, "id");
-  add_column(posts_table, COLUMN_TYPE_UINT16, "user_id");
-  add_column(posts_table, COLUMN_TYPE_STRING, "title");
+  if (posts_table) {
+    if (add_column(posts_table, COLUMN_TYPE_UINT32, "id") != 0)
+      printf("Error adding column id to users_table\n");
+    if (add_column(posts_table, COLUMN_TYPE_UINT16, "user_id") != 0)
+      printf("Error adding column user_id to users_table\n");
+    if (add_column(posts_table, COLUMN_TYPE_STRING, "title") != 0)
+      printf("Error adding column title to users_table\n");
+  }
 
   printf("DEBUG: Adding table %s into %s\n", users_table->table_name,
          db->filename);
-  add_table(db, users_table);
+  if (add_table(db, users_table) != 0)
+    printf("Error adding table %s into %s\n", users_table->table_name,
+           db->filename);
 
   printf("DEBUG: Adding table %s into %s\n", posts_table->table_name,
          db->filename);
-  add_table(db, posts_table);
+  if (add_table(db, posts_table) != 0)
+    printf("Error adding table %s into %s\n", posts_table->table_name,
+           db->filename);
 
   free_table(users_table);
   free_table(posts_table);
@@ -102,7 +119,7 @@ int main() {
   printf("\n");
   print_schema(db);
 
-  close_db(db);
+  free_db(db);
 
   return 0;
 }
